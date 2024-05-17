@@ -1,4 +1,4 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Responder, get};
+use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use openssl::asn1::Asn1Integer;
 use openssl::bn::BigNum;
 use openssl::rand::rand_bytes;
@@ -7,7 +7,8 @@ use openssl::x509::{X509, X509NameBuilder};
 use openssl::x509::extension::{SubjectKeyIdentifier, SubjectAlternativeName};
 use openssl::pkey::PKey;
 use openssl::hash::MessageDigest;
-use openssl::nid::Nid;
+// use openssl::nid::Nid;
+use tera::{Tera, Context};
 use std::io::{stdin, stdout, Write};
 use std::fs;
 use std::env;
@@ -215,6 +216,94 @@ async fn get_cert(name: web::Path<String>) -> actix_web::Result<HttpResponse> {
     }))
 }
 
+async fn cert_page(cert_name: web::Path<String>) -> impl Responder {
+    // Parse the certificate, read pem from filesystem
+    let cert_file_name = format!("./{}.pem", cert_name);
+
+    let cert_pem: String =  match fs::read_to_string(&cert_file_name) {
+        Ok(cert) => cert,
+        Err(e) => return HttpResponse::NotFound().body(format!("Failed to read certificate: {}", e)),
+    };
+
+    let key_pem: String =  match fs::read_to_string(format!("./{}.key", cert_name)) {
+        Ok(key) => key,
+        Err(e) => return HttpResponse::NotFound().body(format!("Failed to read private key: {}", e)),
+    };
+    
+    let cert = X509::from_pem(cert_pem.as_bytes()).expect("Failed to parse certificate");
+
+    // Create a Tera instance and add your template
+    let mut tera = Tera::default();
+    tera.add_raw_template("template", include_str!("./template.html"))
+        .expect("Failed to add template");
+
+    // Create a context and add your data
+    let mut context = Context::new();
+    context.insert("subject", &cert.subject_name().entries().next().unwrap().data().as_utf8().unwrap().to_string());
+    context.insert("issuer", &cert.issuer_name().entries().next().unwrap().data().as_utf8().unwrap().to_string());
+    context.insert("expiration", &cert.not_after().to_string());
+    context.insert("pem", &cert_pem);
+    context.insert("key", &key_pem);
+
+    // Render the template with the context
+    let html = tera.render("template", &context)
+        .expect("Failed to render template");
+
+    HttpResponse::Ok()
+        .content_type("text/html")  // Set the content type to "text/html"
+        .body(html)  // Set the body to your HTML
+}
+
+async fn create_cert_page() -> impl Responder {
+    // Create a Tera instance and add your template
+    let mut tera = Tera::default();
+    tera.add_raw_template("template", include_str!("./create_cert.html"))
+        .expect("Failed to add template");
+
+    // Render the template with the context
+    let html = tera.render("template", &Context::new())
+        .expect("Failed to render template");
+
+    HttpResponse::Ok()
+        .content_type("text/html")  // Set the content type to "text/html"
+        .body(html)  // Set the body to your HTML
+}
+
+async fn list_cert_page() -> impl Responder {
+    // Read all files in the current directory
+    let entries = fs::read_dir(".").unwrap();
+
+    // Filter out files that end with .pem
+    let certificates: Vec<String> = entries
+        .filter_map(|entry| {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            if path.is_file() && path.extension().unwrap_or_default() == "pem" {
+                Some(path.file_stem().unwrap().to_str().unwrap().to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // Create a Tera instance and add your template
+    let mut tera = Tera::default();
+    tera.add_raw_template("template", include_str!("./list_cert.html"))
+        .expect("Failed to add template");
+
+    // Create a context and add your data
+    let mut context = Context::new();
+    context.insert("certificates", &certificates);
+
+    // Render the template with the context
+    let html = tera.render("template", &context)
+        .expect("Failed to render template");
+
+    HttpResponse::Ok()
+        .content_type("text/html")  // Set the content type to "text/html"
+        .body(html)  // Set the body to your HTML
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -235,8 +324,11 @@ async fn main() -> std::io::Result<()> {
     } else {
         HttpServer::new(|| {
             App::new()
-                .route("/cert", web::post().to(generate_cert_endpoint))
-                .route("/cert/{name}", web::get().to(get_cert))
+                .route("/", web::get().to(list_cert_page))
+                .route("/api/cert", web::post().to(generate_cert_endpoint))
+                .route("/api/cert/{name}", web::get().to(get_cert))
+                .route("/create_cert", web::get().to(create_cert_page))
+                .route("/{cert_name}", web::get().to(cert_page))
         })
         .bind("127.0.0.1:8080")?
         .run()

@@ -8,3 +8,4 @@ openssl = "0.10.64"
 actix-web = "4.5.1"
 serde = { version = "1.0.200", features = ["derive"] }
 tokio = { version = "1.37.0", features = ["full"] }
+tera = "1.19.1"

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Certificate Information</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f0f0; }
+        .container { max-width: 750px; margin: 0 auto; padding: 20px; background-color: #fff; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        .header { text-align: center; }
+        .section { margin-bottom: 20px; }
+        .label { font-weight: bold; }
+        .pem-container { display: inline-block;}
+        .pem { white-space: pre-wrap; width: 100%; background-color: #f8f8f8; padding: 10px; border-radius: 5px; font-family:'Courier New', Courier, monospace; box-sizing: border-box;}
+        .copy { display: block; width: 100%; padding: 10px; margin-top: 10px; background-color: #007bff; color: #fff; text-align: center; border-radius: 5px; cursor: pointer; text-decoration: none; box-sizing: border-box;}
+        .copy:hover { background-color: #3391ff; }
+        .copy:active { background-color: #0056b3; }
+        .clipboard {
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.3s ease;
+        }
+        .clipboard:hover {
+            opacity: 0.8;
+        }
+        .clipboard:active {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Certificate Information</h1>
+        </div>
+        <div class="section">
+            <div class="label">Subject:</div>
+            <div>{{ subject }}</div>
+        </div>
+        <div class="section">
+            <div class="label">Issuer:</div>
+            <div>{{ issuer }}</div>
+        </div>
+        <div class="section">
+            <div class="label">Expiration:</div>
+            <div>{{ expiration }}</div>
+        </div>
+        <div class="section">
+            <div class="label">PEM: <a class="clipboard" onclick="copyToClipboard('pem')">&#128203;</a></div>
+            <div class="pem" id="pem">{{ pem }}</div>
+        </div>
+        <div class="section">
+            <div class="label">KEY: <a class="clipboard" onclick="copyToClipboard('key')">&#128203;</a></div>
+            <div class="pem" id="key">{{ key }}</div>
+        </div>
+    </div>
+    <script>
+        function copyToClipboard(inid) {
+            console.log(inid);
+            var pem = document.getElementById(inid);
+            var range = document.createRange();
+            range.selectNode(pem);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+        }
+    </script>
+</body>
+</html>

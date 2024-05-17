@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Certificate</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f0f0; }
+        .container { max-width: 750px; margin: 0 auto; padding: 20px; background-color: #fff; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        .header { text-align: center; }
+        .section { margin-bottom: 20px; }
+        .label { font-weight: bold; }
+        .pem-container { display: inline-block;}
+        .pem { white-space: pre-wrap; background-color: #f8f8f8; padding: 10px; border-radius: 5px; font-family:'Courier New', Courier, monospace;}
+        .copy { display: block; width: 100%; padding: 10px; margin-top: 10px; background-color: #007bff; color: #fff; text-align: center; border-radius: 5px; cursor: pointer; text-decoration: none; }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"] {
+            display: block;
+            box-sizing: border-box;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        input[type="submit"] {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            text-decoration: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            font-size: 16px; 
+        }
+        input[type="submit"]:hover {
+            background-color: #3391ff;
+        }
+        input[type="submit"]:active {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Create Certificate</h1>
+        </div>
+        <form id="certform" class="section">
+            <div class="form-group">
+                <label class="label" for="name">Internal Name:</label>
+                <input type="text" id="name" name="name">
+            </div>
+            <div class="form-group">
+                <label class="label" for="subject">Subject:</label>
+                <input type="text" id="subject" name="subject">
+            </div>
+            <div class="form-group">
+                <label class="label" for="days">Days:</label>
+                <input type="number" id="days" name="days">
+            </div>
+            <div class="form-group">
+                <label class="label" for="key_size">Key Size:</label>
+                <input type="number" id="key_size" name="key_size">
+            </div>
+            <input type="submit" value="Submit">
+        </form>
+        <div id="result" class="section">
+        </div>
+    </div>
+    <script>
+        document.querySelector('#certform').addEventListener('submit', function(event) {
+            // Prevent the default form submission behavior
+            event.preventDefault();
+        
+            // Gather the form data
+            var name = document.querySelector('#name').value;
+            var subject = document.querySelector('#subject').value;
+            var days = parseInt(document.querySelector('#days').value);
+            var key_size = parseInt(document.querySelector('#key_size').value);
+        
+            // Convert the form data to a JSON object
+            var data = {
+                name: name,
+                subject: subject,
+                days: days,
+                key_size: key_size
+            };
+        
+            // Send a POST request with the JSON payload
+            fetch('/api/cert', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            }).then(function(response) {
+                return response.json();
+            }).then(function(data) {
+                document.querySelector('#result').innerHTML = `<div class="section">
+            <div class="label">PEM:</div>
+            <div class="pem" id="pem">${data.certificate}</div>
+            </div><div class="section">
+            <div class="label">KEY:</div>
+            <div class="pem" id="pem">${data.private_key}</div>
+            </div>`;
+            }).catch(function(error) {
+                console.error('Error:', error);
+            });
+        });
+        </script>
+</body>
+</html>
